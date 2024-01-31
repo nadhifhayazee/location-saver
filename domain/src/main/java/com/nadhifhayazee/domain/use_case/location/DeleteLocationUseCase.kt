@@ -1,7 +1,7 @@
-package com.nadhifhayazee.domain.location
+package com.nadhifhayazee.domain.use_case.location
 
-import com.nadhifhayazee.data.repository.location.LocationRepository
 import com.nadhifhayazee.domain.model.ResultState
+import com.nadhifhayazee.domain.repository.LocationRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

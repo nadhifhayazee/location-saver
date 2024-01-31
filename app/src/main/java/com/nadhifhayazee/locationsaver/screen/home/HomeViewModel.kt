@@ -2,11 +2,11 @@ package com.nadhifhayazee.locationsaver.screen.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nadhifhayazee.domain.location.AddLocationUseCase
-import com.nadhifhayazee.domain.location.DeleteLocationUseCase
-import com.nadhifhayazee.domain.location.GetMyLocationsUseCase
+import com.nadhifhayazee.domain.model.Location
+import com.nadhifhayazee.domain.use_case.location.AddLocationUseCase
+import com.nadhifhayazee.domain.use_case.location.DeleteLocationUseCase
+import com.nadhifhayazee.domain.use_case.location.GetMyLocationsUseCase
 import com.nadhifhayazee.domain.model.ResultState
-import com.nadhifhayazee.shared.model.MyLocation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,7 +67,7 @@ class HomeViewModel @Inject constructor(
         longitude: Double,
         latitude: Double
     ) {
-        val location = MyLocation(
+        val location = Location(
             name = name,
             locationDetail = detail,
             longitude = longitude,

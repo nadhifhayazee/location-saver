@@ -16,12 +16,9 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.BottomSheetScaffold
-import androidx.compose.material.BottomSheetScaffoldState
-import androidx.compose.material.BottomSheetState
 import androidx.compose.material.BottomSheetValue
 import androidx.compose.material.Button
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
@@ -33,14 +30,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -161,21 +156,24 @@ fun CreateLocationContent(
 
     Scaffold { paddingValue ->
 
-        Box(modifier = modifier
-            .fillMaxSize()
-            .padding(paddingValue)) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(paddingValue)
+        ) {
 
-            BottomSheetScaffold(sheetContent = {
-                AddLocationSection(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .background(shape = RoundedCornerShape(12.dp), color = Color.White),
-                    onAddLocationClicked = { name, detail ->
-                        onAddLocationClicked(name, detail, latLng.latitude, latLng.longitude)
-                    }
-                )
-            }, sheetShape = RoundedCornerShape(16.dp),
+            BottomSheetScaffold(
+                sheetContent = {
+                    AddLocationSection(
+                        modifier = modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .background(shape = RoundedCornerShape(12.dp), color = Color.White),
+                        onAddLocationClicked = { name, detail ->
+                            onAddLocationClicked(name, detail, latLng.latitude, latLng.longitude)
+                        }
+                    )
+                }, sheetShape = RoundedCornerShape(16.dp),
                 scaffoldState = bottomSheetScaffoldState
             ) {
                 GoogleMap(

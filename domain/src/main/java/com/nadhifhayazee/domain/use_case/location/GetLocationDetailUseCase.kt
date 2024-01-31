@@ -1,8 +1,8 @@
-package com.nadhifhayazee.domain.location
+package com.nadhifhayazee.domain.use_case.location
 
-import com.nadhifhayazee.shared.model.MyLocation
-import com.nadhifhayazee.data.repository.location.LocationRepository
+import com.nadhifhayazee.domain.model.Location
 import com.nadhifhayazee.domain.model.ResultState
+import com.nadhifhayazee.domain.repository.LocationRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -13,7 +13,7 @@ class GetLocationDetailUseCase @Inject constructor(
     private val locationRepository: LocationRepository
 ) {
 
-    suspend operator fun invoke(id: String): Flow<ResultState<com.nadhifhayazee.shared.model.MyLocation>> {
+    suspend operator fun invoke(id: String): Flow<ResultState<Location>> {
         return flow {
 
             emit(ResultState.Loading())

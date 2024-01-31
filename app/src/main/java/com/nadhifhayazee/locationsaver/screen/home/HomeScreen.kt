@@ -35,9 +35,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nadhifhayazee.domain.model.Location
 import com.nadhifhayazee.locationsaver.component.LocationItem
 import com.nadhifhayazee.locationsaver.navigation.HomeNavigation
-import com.nadhifhayazee.shared.model.MyLocation
 
 @Composable
 fun HomeScreen(
@@ -59,7 +59,7 @@ fun HomeScreenContent(
     modifier: Modifier = Modifier,
     locationsState: MyLocationsState,
     homeNavigation: HomeNavigation?,
-    onDeleteLocation: (MyLocation) -> Unit
+    onDeleteLocation: (Location) -> Unit
 ) {
     Scaffold(
         floatingActionButton = {
@@ -141,9 +141,9 @@ fun AddLocationFloatingButton(
 @Composable
 fun LocationList(
     modifier: Modifier = Modifier,
-    locations: List<MyLocation>?,
+    locations: List<Location>?,
     homeNavigation: HomeNavigation?,
-    onDeleteLocation: (MyLocation) -> Unit
+    onDeleteLocation: (Location) -> Unit
 ) {
 
     val context = LocalContext.current

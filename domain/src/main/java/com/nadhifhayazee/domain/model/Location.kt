@@ -1,6 +1,6 @@
-package com.nadhifhayazee.shared.model
+package com.nadhifhayazee.domain.model
 
-data class MyLocation(
+data class Location(
     val id: Int = 0,
     val name: String?,
     val locationDetail: String?,

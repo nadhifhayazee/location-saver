@@ -9,36 +9,32 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nadhifhayazee.shared.model.MyLocation
+import com.nadhifhayazee.domain.model.Location
 
 @Composable
 fun LocationItem(
     modifier: Modifier = Modifier,
-    location: MyLocation,
-    onDirectionClick: (MyLocation) -> Unit,
-    onShareClick: (MyLocation) -> Unit,
-    onDeleteLocation: (MyLocation) -> Unit
+    location: Location,
+    onDirectionClick: (Location) -> Unit,
+    onShareClick: (Location) -> Unit,
+    onDeleteLocation: (Location) -> Unit
 ) {
 
 
@@ -132,7 +128,7 @@ fun LocationItem(
 @Composable
 fun LocationDetailPreview() {
     LocationItem(
-        location = MyLocation(0, "preview", "notes", null, null),
+        location = Location(0, "preview", "notes", null, null),
         onDirectionClick = {},
         onShareClick = {},
         onDeleteLocation = {}

@@ -14,8 +14,7 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
-import com.nadhifhayazee.domain.location.AddLocationUseCase
-import com.nadhifhayazee.shared.model.MyLocation
+import com.nadhifhayazee.domain.use_case.location.AddLocationUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -104,7 +103,7 @@ class CreateLocationViewModel @Inject constructor(
         latitude: Double,
         longitude: Double
     ) {
-        val location = MyLocation(
+        val location = com.nadhifhayazee.domain.model.Location(
             name = name,
             locationDetail = detail,
             longitude = longitude,

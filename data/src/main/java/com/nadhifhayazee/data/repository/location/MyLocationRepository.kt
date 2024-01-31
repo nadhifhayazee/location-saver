@@ -1,27 +1,32 @@
 package com.nadhifhayazee.data.repository.location
 
-import com.nadhifhayazee.data.source.room.location.LocalLocationDataSource
+import com.nadhifhayazee.data.source.room.dao.LocationDao
+import com.nadhifhayazee.data.source.room.model.toEntity
+import com.nadhifhayazee.data.source.room.model.toLocation
+import com.nadhifhayazee.domain.model.Location
+import com.nadhifhayazee.domain.repository.LocationRepository
 import com.nadhifhayazee.shared.exceptions.DataNotFoundException
 import com.nadhifhayazee.shared.exceptions.InsertDataException
-import com.nadhifhayazee.shared.model.MyLocation
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class MyLocationRepository @Inject constructor(
-    private val localMyLocationDataSource: LocalLocationDataSource
+    private val locationDao: LocationDao
 ) : LocationRepository {
 
-    override fun getLocations(): Flow<List<MyLocation>> {
-        return localMyLocationDataSource.getAllLocations()
+    override fun getLocations(): Flow<List<Location>> {
+        return locationDao.getAll().map { locations ->
+            locations.map {
+                it.toLocation()
+            }
+        }
 
     }
 
-    override suspend fun addLocation(myLocation: MyLocation): Boolean {
+    override suspend fun addLocation(location: Location): Boolean {
         return try {
-            localMyLocationDataSource.addLocation(myLocation)
+            locationDao.insertLocation(location.toEntity())
             true
         } catch (e: Exception) {
             throw InsertDataException(e.message)
@@ -29,13 +34,13 @@ class MyLocationRepository @Inject constructor(
         }
     }
 
-    override suspend fun getLocationById(id: String): MyLocation {
-        return localMyLocationDataSource.getLocationById(id)
+    override suspend fun getLocationById(id: String): Location {
+        return locationDao.getLocationById(id)?.toLocation()
             ?: throw DataNotFoundException("Wrong id")
     }
 
     override suspend fun deleteLocation(id: String) {
-        return localMyLocationDataSource.deleteLocation(id)
+        return locationDao.deleteLocation(getLocationById(id).toEntity())
     }
 
 }

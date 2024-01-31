@@ -3,7 +3,7 @@ package com.nadhifhayazee.data.source.room.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.nadhifhayazee.shared.model.MyLocation
+import com.nadhifhayazee.domain.model.Location
 
 @Entity(tableName = "my_location")
 data class LocationEntity(
@@ -14,8 +14,8 @@ data class LocationEntity(
     @ColumnInfo(name = "latitude") val latitude: Double?
 )
 
-fun LocationEntity.toMyLocation(): MyLocation {
-    return MyLocation(
+fun LocationEntity.toLocation(): Location {
+    return Location(
         id = this.id,
         name = this.name,
         locationDetail = this.locationDetail,
@@ -24,7 +24,7 @@ fun LocationEntity.toMyLocation(): MyLocation {
     )
 }
 
-fun MyLocation.toEntity(): LocationEntity{
+fun Location.toEntity(): LocationEntity{
     return LocationEntity(
         id = this.id,
         name = this.name,

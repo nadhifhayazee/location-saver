@@ -1,8 +1,8 @@
-package com.nadhifhayazee.domain.location
+package com.nadhifhayazee.domain.use_case.location
 
-import com.nadhifhayazee.data.repository.location.LocationRepository
+import com.nadhifhayazee.domain.model.Location
 import com.nadhifhayazee.domain.model.ResultState
-import com.nadhifhayazee.shared.model.MyLocation
+import com.nadhifhayazee.domain.repository.LocationRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -13,7 +13,7 @@ class GetMyLocationsUseCase @Inject constructor(
     private val locationRepository: LocationRepository
 ) {
 
-    operator fun invoke(): Flow<ResultState<List<MyLocation>>> {
+    operator fun invoke(): Flow<ResultState<List<Location>>> {
         return channelFlow {
             try {
                 send(ResultState.Loading())
