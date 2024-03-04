@@ -14,8 +14,10 @@ import com.nadhifhayazee.locationsaver.navigation.AppNavigation
 import com.nadhifhayazee.locationsaver.navigation.HomeNavigation
 import com.nadhifhayazee.locationsaver.navigation.LocationCreateNavigation
 import com.nadhifhayazee.locationsaver.navigation.LocationDetailNavigation
+import com.nadhifhayazee.locationsaver.screen.Route
+import com.nadhifhayazee.locationsaver.screen.edit_note.EditNoteScreen
+import com.nadhifhayazee.locationsaver.screen.edit_note.EditTitleScreen
 import com.nadhifhayazee.locationsaver.screen.home.HomeScreen
-import com.nadhifhayazee.locationsaver.screen.home.LocationPermissionState
 import com.nadhifhayazee.locationsaver.screen.location_create.CreateLocationScreen
 import com.nadhifhayazee.locationsaver.screen.location_detail.LocationDetailScreen
 
@@ -59,6 +61,27 @@ fun LocationSaverApp(
                 CreateLocationScreen(navController = navController)
             }
 
+            composable(
+                route = Route.EditNote.route,
+                arguments = listOf(navArgument("LOCATION_ID") {
+                    type = NavType.IntType
+                })
+            ) {
+                val id = it.arguments?.getInt("LOCATION_ID", 0)
+                EditNoteScreen(locationId = id, navController = navController)
+
+            }
+
+            composable(
+                route = Route.EditTitle.route,
+                arguments = listOf(navArgument("LOCATION_ID") {
+                    type = NavType.IntType
+                })
+            ) {
+                val id = it.arguments?.getInt("LOCATION_ID", 0)
+                EditTitleScreen(locationId = id, navController = navController)
+
+            }
 
 
         }

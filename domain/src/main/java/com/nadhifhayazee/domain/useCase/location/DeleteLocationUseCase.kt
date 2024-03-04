@@ -1,4 +1,4 @@
-package com.nadhifhayazee.domain.use_case.location
+package com.nadhifhayazee.domain.useCase.location
 
 import com.nadhifhayazee.domain.model.ResultState
 import com.nadhifhayazee.domain.repository.LocationRepository

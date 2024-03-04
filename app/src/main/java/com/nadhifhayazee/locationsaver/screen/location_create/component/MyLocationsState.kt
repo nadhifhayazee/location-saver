@@ -1,4 +1,4 @@
-package com.nadhifhayazee.locationsaver.screen.home
+package com.nadhifhayazee.locationsaver.screen.location_create.component
 
 import com.nadhifhayazee.domain.model.Location
 

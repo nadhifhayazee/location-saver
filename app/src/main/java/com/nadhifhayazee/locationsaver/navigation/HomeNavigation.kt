@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
 import androidx.navigation.NavHostController
+import com.nadhifhayazee.locationsaver.screen.Route
 
 class HomeNavigation(val navHostController: NavHostController) {
 
@@ -17,6 +18,14 @@ class HomeNavigation(val navHostController: NavHostController) {
 
     fun actionHomeScreenToCreateLocationScreen() {
         navHostController.navigate(LocationCreateNavigation.route)
+    }
+
+    fun navigateToEditNote(id: String) {
+        navHostController.navigate(Route.EditNote.createRoute(id))
+    }
+
+    fun navigateToEditTitle(id: String) {
+        navHostController.navigate(Route.EditTitle.createRoute(id))
     }
 
     fun gotoToDirection(context: Context, latitude: String, longitude: String) {

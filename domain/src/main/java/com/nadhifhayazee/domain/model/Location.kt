@@ -6,4 +6,6 @@ data class Location(
     val locationDetail: String?,
     val longitude: Double?,
     val latitude: Double?,
+    val locationImages: List<String> = emptyList()
 )
+

@@ -3,6 +3,7 @@ package com.nadhifhayazee.di
 import android.content.Context
 import androidx.room.Room
 import com.nadhifhayazee.data.source.room.dao.LocationDao
+import com.nadhifhayazee.data.source.room.dao.LocationImagesDao
 import com.nadhifhayazee.data.source.room.db.LocationSaverDatabase
 import dagger.Module
 import dagger.Provides
@@ -33,5 +34,13 @@ object DatabaseModule {
         locationSaverDatabase: LocationSaverDatabase
     ): LocationDao {
         return locationSaverDatabase.locationDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLocationImageDao(
+        locationSaverDatabase: LocationSaverDatabase
+    ): LocationImagesDao {
+        return locationSaverDatabase.locationImageDao()
     }
 }

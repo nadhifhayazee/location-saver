@@ -1,4 +1,4 @@
-package com.nadhifhayazee.domain.use_case.location
+package com.nadhifhayazee.domain.useCase.location
 
 import com.nadhifhayazee.domain.model.Location
 import com.nadhifhayazee.domain.model.ResultState
@@ -9,16 +9,16 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
-class AddLocationUseCase @Inject constructor(
-    private val locationRepository: LocationRepository
+class UpdateLocationUseCase @Inject constructor(
+    private val repository: LocationRepository
 ) {
 
-    suspend operator fun invoke(location: Location): Flow<ResultState<Boolean>> {
+    operator fun invoke(location: Location): Flow<ResultState<Boolean>>{
         return flow {
             emit(ResultState.Loading())
             delay(300)
-            val addLocation = locationRepository.addLocation(location)
-            emit(ResultState.Success(addLocation))
+            repository.updateLocation(location)
+            emit(ResultState.Success(true))
         }.catch {
             emit(ResultState.Error(it))
         }

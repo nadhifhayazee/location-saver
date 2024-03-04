@@ -2,7 +2,12 @@ package com.nadhifhayazee.locationsaver.screen.home
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,20 +29,27 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.sharp.LocationOn
+import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nadhifhayazee.domain.model.Location
-import com.nadhifhayazee.locationsaver.component.LocationItem
 import com.nadhifhayazee.locationsaver.navigation.HomeNavigation
+import com.nadhifhayazee.locationsaver.screen.home.component.LocationItem
+import com.nadhifhayazee.shared.tools.ImageUriGenerator
 
 @Composable
 fun HomeScreen(
@@ -47,70 +59,83 @@ fun HomeScreen(
 ) {
 
     val locationsState by homeViewModel.myLocations.collectAsState()
+    val scaffoldState = rememberScaffoldState()
 
-    HomeScreenContent(modifier = modifier, locationsState = locationsState, homeNavigation) {
-        homeViewModel.deleteLocation(it.id.toString())
+    val context = LocalContext.current
+    var uri: Uri? = null
+    var selectedLocation by remember {
+        mutableStateOf<Location?>(null)
+    }
+    val cameraLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.TakePicture()) {
+
+            if (it) {
+                selectedLocation?.id?.let { id ->
+                    homeViewModel.addLocationImage(
+                        uri.toString(),
+                        id
+                    )
+                }
+
+            }
+        }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        if (it) {
+            Toast.makeText(context, "Permission Granted", Toast.LENGTH_SHORT).show()
+            uri = ImageUriGenerator.createImageUri(context)
+            cameraLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "Permission Denied", Toast.LENGTH_SHORT).show()
+        }
     }
 
-}
+    Log.d("LocationScreen", "HomeScreen")
 
-@Composable
-fun HomeScreenContent(
-    modifier: Modifier = Modifier,
-    locationsState: MyLocationsState,
-    homeNavigation: HomeNavigation?,
-    onDeleteLocation: (Location) -> Unit
-) {
     Scaffold(
         floatingActionButton = {
             AddLocationFloatingButton(
                 homeNavigation = homeNavigation
             )
-        }
+        },
+        scaffoldState = scaffoldState
     ) { paddingValues ->
 
-        Column(
-            modifier = modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .background(
-                    color = Color.LightGray.copy(alpha = 0.2f)
-                ),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
 
-
-            AnimatedVisibility(visible = locationsState.isLoading) {
-                CircularProgressIndicator()
-            }
-
-
-            if (!locationsState.isLoading && locationsState.locations.isNullOrEmpty()) {
-                DataNotExist()
-            } else {
-                LocationList(
-                    locations = locationsState.locations,
-                    homeNavigation = homeNavigation
-                ) { location ->
-                    onDeleteLocation(location)
+        HomeScreenContent(
+            modifier = modifier,
+            locationsState = locationsState,
+            homeNavigation,
+            paddingValues,
+            onDeleteLocation = {
+                homeViewModel.onEvent(LocationEvent.DeleteLocation(it.id.toString()))
+            },
+            onAddImage = { location ->
+                selectedLocation = location
+                val permissionCheckResult =
+                    ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA)
+                if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                    uri = ImageUriGenerator.createImageUri(context)
+                    cameraLauncher.launch(uri)
+                } else {
+                    permissionLauncher.launch(android.Manifest.permission.CAMERA)
                 }
             }
-
-
-            locationsState.throwable?.let {
-                Toast.makeText(LocalContext.current, it.message.toString(), Toast.LENGTH_SHORT)
-                    .show()
-            }
-        }
+        )
     }
+
+
 }
+
 
 @Composable
 fun AddLocationFloatingButton(
     modifier: Modifier = Modifier,
     homeNavigation: HomeNavigation?
 ) {
+
     Button(
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(backgroundColor = Color.White),
@@ -129,49 +154,72 @@ fun AddLocationFloatingButton(
                     .padding(horizontal = 4.dp),
                 imageVector = Icons.Sharp.LocationOn,
                 contentDescription = "Icon add location",
-                tint = Color.Blue.copy(alpha = 0.8f)
+                tint = Color(0XFFFFA500)
             )
 
-            Text(text = "Tambahkan", color = Color.Blue, fontSize = 11.sp)
+            Text(
+                text = "Tambahkan",
+                color = Color(0XFFFFA500),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
     }
 }
+
 
 @Composable
-fun LocationList(
+fun HomeScreenContent(
     modifier: Modifier = Modifier,
-    locations: List<Location>?,
+    locationsState: LocationState,
     homeNavigation: HomeNavigation?,
-    onDeleteLocation: (Location) -> Unit
+    paddingValues: PaddingValues = PaddingValues(),
+    onDeleteLocation: (Location) -> Unit,
+    onAddImage: (Location) -> Unit
 ) {
 
-    val context = LocalContext.current
-    locations?.let {
-        LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 4.dp)
-        ) {
-            items(it) { location ->
+    Log.d("LocationScreen", "HomeScreenContent")
 
-                LocationItem(location = location, onDirectionClick = {
-                    homeNavigation?.gotoToDirection(
-                        context,
-                        it.latitude.toString(),
-                        it.longitude.toString()
-                    )
-                }, onShareClick = {
-                    shareLocation(context, it.name, it.latitude, it.longitude)
-                }, onDeleteLocation = {
-                    onDeleteLocation(it)
-                })
-            }
+    Column(
+        modifier = modifier
+            .padding(paddingValues)
+            .fillMaxSize()
+            .background(
+                color = Color.LightGray.copy(alpha = 0.2f)
+            ),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+
+        AnimatedVisibility(visible = locationsState.loading) {
+            CircularProgressIndicator()
         }
 
+
+        if (!locationsState.loading && locationsState.locations.isEmpty()) {
+            DataNotExist()
+        } else {
+            LocationList(
+                locations = locationsState.locations,
+                homeNavigation = homeNavigation,
+                onDeleteLocation = { location ->
+                    onDeleteLocation(location)
+                },
+                onAddImage = { location ->
+                    onAddImage(location)
+                }
+            )
+        }
+
+
+        locationsState.errorMessage?.let { message ->
+            Toast.makeText(LocalContext.current, message, Toast.LENGTH_SHORT)
+                .show()
+        }
     }
-
 }
-
 
 @Composable
 fun DataNotExist(
@@ -196,11 +244,67 @@ fun DataNotExist(
     }
 }
 
+@Composable
+fun LocationList(
+    modifier: Modifier = Modifier,
+    locations: List<Location>?,
+    homeNavigation: HomeNavigation?,
+    onDeleteLocation: (Location) -> Unit,
+    onAddImage: (Location) -> Unit
+) {
+
+    Log.d("LocationItemList", "LocationList")
+
+    val context = LocalContext.current
+    locations?.let {
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 4.dp),
+        ) {
+            items(it, key = {
+                it.id
+            }) { location ->
+
+                val locationItem by remember {
+                    mutableStateOf(location)
+                }
+                LocationItem(modifier = Modifier.padding(vertical = 8.dp),
+                    location = locationItem,
+                    onDirectionClick = {
+                        homeNavigation?.gotoToDirection(
+                            context,
+                            it.latitude.toString(),
+                            it.longitude.toString()
+                        )
+                    },
+                    onShareClick = {
+                        shareLocation(context, it.name, it.latitude, it.longitude)
+                    },
+                    onDeleteLocation = {
+                        onDeleteLocation(it)
+                    },
+                    onEditNote = {
+                        homeNavigation?.navigateToEditNote(it.id.toString())
+                    },
+                    onEditTitle = {
+                        homeNavigation?.navigateToEditTitle(it.id.toString())
+                    },
+                    onAddImage = {
+                        onAddImage(it)
+                    })
+            }
+
+        }
+
+    }
+
+}
+
+
 private fun shareLocation(context: Context, name: String?, lat: Double?, lng: Double?) {
 
     val header = "Berbagi lokasi $name \n"
-    val message = "$header" +
-            "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng"
+    val message = "$header https://www.google.com/maps/dir/?api=1&destination=$lat,$lng"
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(
@@ -224,7 +328,9 @@ private fun shareLocation(context: Context, name: String?, lat: Double?, lng: Do
 @Composable
 fun HomeScreenPreview() {
     HomeScreenContent(
-        locationsState = MyLocationsState(isLoading = false, listOf(), null),
-        homeNavigation = null
-    ){}
+        locationsState = LocationState(),
+        homeNavigation = null,
+        onDeleteLocation = {},
+        onAddImage = {}
+    )
 }

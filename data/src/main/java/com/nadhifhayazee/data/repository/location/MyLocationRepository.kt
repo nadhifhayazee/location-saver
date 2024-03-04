@@ -16,11 +16,17 @@ class MyLocationRepository @Inject constructor(
 ) : LocationRepository {
 
     override fun getLocations(): Flow<List<Location>> {
-        return locationDao.getAll().map { locations ->
+        return locationDao.getLocationWithImages().map { locations ->
             locations.map {
                 it.toLocation()
             }
+
         }
+//        return locationDao.getAll().map { locations ->
+//            locations.map {
+//                it.toLocation()
+//            }
+//        }
 
     }
 
@@ -37,6 +43,10 @@ class MyLocationRepository @Inject constructor(
     override suspend fun getLocationById(id: String): Location {
         return locationDao.getLocationById(id)?.toLocation()
             ?: throw DataNotFoundException("Wrong id")
+    }
+
+    override suspend fun updateLocation(location: Location) {
+        return locationDao.updateLocation(location.toEntity())
     }
 
     override suspend fun deleteLocation(id: String) {

@@ -1,4 +1,4 @@
-package com.nadhifhayazee.locationsaver.screen.home
+package com.nadhifhayazee.locationsaver.screen.location_create.component
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -6,7 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 

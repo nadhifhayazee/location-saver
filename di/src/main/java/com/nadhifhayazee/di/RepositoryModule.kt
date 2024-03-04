@@ -1,7 +1,10 @@
 package com.nadhifhayazee.di
 
+import com.nadhifhayazee.data.repository.location.MyLocationImageRepository
 import com.nadhifhayazee.data.repository.location.MyLocationRepository
 import com.nadhifhayazee.data.source.room.dao.LocationDao
+import com.nadhifhayazee.data.source.room.dao.LocationImagesDao
+import com.nadhifhayazee.domain.repository.LocationImagesRepository
 import com.nadhifhayazee.domain.repository.LocationRepository
 import dagger.Module
 import dagger.Provides
@@ -20,4 +23,10 @@ object RepositoryModule {
     }
 
 
+    @Provides
+    fun provideMyLocationImageRepository(
+        locationImagesDao: LocationImagesDao
+    ): LocationImagesRepository {
+        return MyLocationImageRepository(locationImagesDao)
+    }
 }

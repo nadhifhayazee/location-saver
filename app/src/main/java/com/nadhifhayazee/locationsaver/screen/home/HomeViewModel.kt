@@ -1,16 +1,14 @@
 package com.nadhifhayazee.locationsaver.screen.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nadhifhayazee.domain.model.Location
-import com.nadhifhayazee.domain.use_case.location.AddLocationUseCase
-import com.nadhifhayazee.domain.use_case.location.DeleteLocationUseCase
-import com.nadhifhayazee.domain.use_case.location.GetMyLocationsUseCase
 import com.nadhifhayazee.domain.model.ResultState
+import com.nadhifhayazee.domain.useCase.location.DeleteLocationUseCase
+import com.nadhifhayazee.domain.useCase.location.GetMyLocationsUseCase
+import com.nadhifhayazee.domain.useCase.locationImage.AddLocationImageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
@@ -20,70 +18,57 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val getMyLocationsUseCase: GetMyLocationsUseCase,
-    private val addLocationUseCase: AddLocationUseCase,
-    private val deleteLocationUseCase: DeleteLocationUseCase
+    private val addLocationImageUseCase: AddLocationImageUseCase,
+    private val deleteLocationUseCase: DeleteLocationUseCase,
+
 ) : ViewModel() {
 
-    private val _myLocations = MutableStateFlow<MyLocationsState>(initialMyLocationsState())
+    private val _myLocations = MutableStateFlow<LocationState>(LocationState())
     val myLocations get() = _myLocations.asStateFlow()
 
-    private val _addLocationState = MutableSharedFlow<ResultState<Boolean>>()
-    val addLocationState get() = _addLocationState.asSharedFlow()
-
-
-    private fun initialMyLocationsState() = MyLocationsState(
-        isLoading = true,
-        locations = null,
-        throwable = null
-    )
 
     init {
         getMyLocations()
     }
 
-    fun getMyLocations() {
+    fun onEvent(event: LocationEvent) {
+        when (event) {
+            is LocationEvent.DeleteLocation -> {
+                deleteLocation(event.id)
+            }
+        }
+    }
+
+    private fun getMyLocations() {
         viewModelScope.launch {
             getMyLocationsUseCase()
                 .collectLatest { result ->
                     when (result) {
                         is ResultState.Loading -> {
-                            _myLocations.update { it.copy(isLoading = true, throwable = null) }
+                            _myLocations.update { it.copy(loading = true, errorMessage = null) }
                         }
                         is ResultState.Success -> {
-                            _myLocations.update { it.copy(isLoading = false, locations = result.data, throwable = null) }
+                            _myLocations.update { it.copy(loading = false, locations = result.data, errorMessage = null) }
                         }
                         is ResultState.Error -> {
-                            _myLocations.update { it.copy(isLoading = false, throwable = result.throwable) }
+                            _myLocations.update { it.copy(loading = false, errorMessage = result.throwable.message) }
                         }
                         else -> Unit
                     }
                 }
         }
     }
-
-    fun addLocation(
-        name: String,
-        detail: String?,
-        longitude: Double,
-        latitude: Double
-    ) {
-        val location = Location(
-            name = name,
-            locationDetail = detail,
-            longitude = longitude,
-            latitude = latitude
-        )
-
+    private fun deleteLocation(id: String) {
         viewModelScope.launch {
-            addLocationUseCase(location).collectLatest {
-                _addLocationState.emit(it)
-            }
+            deleteLocationUseCase(id).collectLatest {  }
         }
     }
 
-    fun deleteLocation(id: String) {
+    fun addLocationImage(imageName: String, locationId: Int) {
         viewModelScope.launch {
-            deleteLocationUseCase(id).collectLatest {  }
+            addLocationImageUseCase(imageName, locationId).collectLatest {
+
+            }
         }
     }
 
