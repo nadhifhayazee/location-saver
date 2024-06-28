@@ -13,7 +13,7 @@ import java.io.IOException
 
 object ImageUriGenerator {
 
-    fun createImageUri(context: Context): Uri? {
+    fun createImageUri(context: Context): Uri {
         val uri = getContentUri()
         val resolver = context.contentResolver
         val contentValues = ContentValues()
@@ -21,7 +21,7 @@ object ImageUriGenerator {
 
         contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, imageName)
         contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Location Saver")
-        return resolver.insert(uri, contentValues)
+        return resolver.insert(uri, contentValues) ?: uri
 
     }
 
@@ -35,16 +35,16 @@ object ImageUriGenerator {
 
 }
 
-fun Uri.getBitmap(context: Context): Bitmap? {
-    return try {
-        val inputStream = context.contentResolver.openInputStream(this)
-        if (inputStream != null) {
-            BitmapFactory.decodeStream(inputStream)
-        } else {
+suspend fun Uri.getBitmap(context: Context): Bitmap? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val inputStream = context.contentResolver.openInputStream(this@getBitmap)
+            inputStream?.use {
+                BitmapFactory.decodeStream(it)
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
             null
         }
-    } catch (e: IOException) {
-        e.printStackTrace()
-        null
     }
 }

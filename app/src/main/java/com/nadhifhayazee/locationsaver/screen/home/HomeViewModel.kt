@@ -60,7 +60,7 @@ class HomeViewModel @Inject constructor(
     }
     private fun deleteLocation(id: String) {
         viewModelScope.launch {
-            deleteLocationUseCase(id).collectLatest {  }
+            deleteLocationUseCase(id).collectLatest {}
         }
     }
 

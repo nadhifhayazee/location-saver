@@ -1,5 +1,12 @@
 package com.nadhifhayazee.locationsaver.base
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Scaffold
 import androidx.compose.runtime.Composable
@@ -37,26 +44,59 @@ fun LocationSaverApp(
 
             val homeNavigation = HomeNavigation(navController)
 
-            composable(HomeNavigation.route) {
-                HomeScreen(homeNavigation = homeNavigation)
-            }
+            composable(HomeNavigation.route,
+//                exitTransition = {
+//                    return@composable slideOutOfContainer(
+//                        AnimatedContentTransitionScope.SlideDirection.Start, tween(700)
+//                    )
+//                }, popExitTransition = {
+//                    return@composable fadeOut(tween(700))
+//                },
+//                popExitTransition = {
+//                    slideOutOfContainer(
+//                        animationSpec = tween(300, easing = EaseOut),
+//                        towards = AnimatedContentTransitionScope.SlideDirection.End
+//                    )
+//                },
+//                popEnterTransition = {
+//                    return@composable slideIntoContainer(
+//                        AnimatedContentTransitionScope.SlideDirection.Start,
+//                        tween(700)
+//                    )
+//                },
 
-            composable(
-                route = LocationDetailNavigation.route,
-                arguments = listOf(navArgument(AppNavigation.LOCATION_ID_KEY) {
-                    type = NavType.StringType
-                })
+                enterTransition = {
+                    return@composable fadeIn(tween(1000))
+                }, exitTransition = {
+                    return@composable fadeOut(tween(700))
+                }, popEnterTransition = {
+                    return@composable slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.End, tween(700)
+                    )
+                }
             ) {
-                val id = it.arguments?.getString(AppNavigation.LOCATION_ID_KEY, "")
-                LocationDetailScreen(
-                    locationDetailNavigation = LocationDetailNavigation(),
-                    locationId = id
-                )
+                HomeScreen(navController = navController)
             }
 
 
             composable(
-                route = LocationCreateNavigation.route
+                route = LocationCreateNavigation.route,
+                enterTransition = {
+                    return@composable slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Start, tween(700)
+                    )
+                },
+                popExitTransition = {
+                    return@composable slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.End, tween(700)
+                    )
+                },
+//                exitTransition = {
+//                    slideOutOfContainer(
+//                        animationSpec = tween(300, easing = EaseOut),
+//                        towards = AnimatedContentTransitionScope.SlideDirection.End
+//                    )
+//                },
             ) {
                 CreateLocationScreen(navController = navController)
             }
@@ -65,7 +105,17 @@ fun LocationSaverApp(
                 route = Route.EditNote.route,
                 arguments = listOf(navArgument("LOCATION_ID") {
                     type = NavType.IntType
-                })
+                },),
+                enterTransition = {
+                    return@composable slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Start, tween(700)
+                    )
+                },
+                popExitTransition = {
+                    return@composable slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.End, tween(700)
+                    )
+                },
             ) {
                 val id = it.arguments?.getInt("LOCATION_ID", 0)
                 EditNoteScreen(locationId = id, navController = navController)
@@ -76,7 +126,17 @@ fun LocationSaverApp(
                 route = Route.EditTitle.route,
                 arguments = listOf(navArgument("LOCATION_ID") {
                     type = NavType.IntType
-                })
+                }),
+                enterTransition = {
+                    return@composable slideIntoContainer(
+                        AnimatedContentTransitionScope.SlideDirection.Start, tween(700)
+                    )
+                },
+                popExitTransition = {
+                    return@composable slideOutOfContainer(
+                        AnimatedContentTransitionScope.SlideDirection.End, tween(700)
+                    )
+                },
             ) {
                 val id = it.arguments?.getInt("LOCATION_ID", 0)
                 EditTitleScreen(locationId = id, navController = navController)

@@ -1,32 +1,39 @@
 package com.nadhifhayazee.locationsaver.screen.home.component
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
-import android.util.Log
+import android.widget.Space
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Card
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,14 +46,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.nadhifhayazee.domain.model.Location
 import com.nadhifhayazee.locationsaver.R
-import com.nadhifhayazee.locationsaver.component.Theme
-import com.nadhifhayazee.shared.tools.getBitmap
 
 @Composable
 fun LocationItem(
@@ -60,43 +66,51 @@ fun LocationItem(
     onAddImage: (Location) -> Unit,
 ) {
 
-
-    Log.d("LocationItem", "LocationItem")
-
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp)
     ) {
 
-        TitleAndMenuSection(
-            title = location.name,
-            onEditTitle = {
-                onEditTitle(location)
-            },
-            onAddImage = {
-                onAddImage(location)
-            },
-            onDeleteLocation = {
-                onDeleteLocation(location)
-            }
-        )
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.surfaceContainer,
+                    shape = MaterialTheme.shapes.large
+                )
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp)
+        ) {
+
+            TitleAndMenuSection(
+                title = location.name,
+                onEditTitle = {
+                    onEditTitle(location)
+                },
+                onAddImage = {
+                    onAddImage(location)
+                },
+                onDeleteLocation = {
+                    onDeleteLocation(location)
+                }
+            )
 
 
-        DirectionAndShareButtonSection(
-            onDirectionClick = { onDirectionClick(location) },
-            onShareClick = { onShareClick(location) }
-        )
+            DirectionAndShareButtonSection(
+                onDirectionClick = { onDirectionClick(location) },
+                onShareClick = { onShareClick(location) }
+            )
 
-        LocationImages(location.locationImages)
+            if (location.locationUriImages.isNotEmpty()) LocationImages(location.locationUriImages)
+            else Spacer(modifier = modifier.height(4.dp))
 
-        LocationNote(
-            note = location.locationDetail,
-            onEditNoteClicked = {
-                onEditNote(location)
-            }
-        )
+            LocationNote(
+                note = location.locationDetail,
+                onEditNoteClicked = {
+                    onEditNote(location)
+                }
+            )
+        }
     }
 
 }
@@ -117,25 +131,35 @@ fun TitleAndMenuSection(
 
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = title ?: "",
-            fontSize = 18.sp,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.SemiBold,
-            color = Color.Black,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(end = 8.dp)
         )
 
 
         Column {
 
-            IconButton(onClick = { menuExpanded = true }) {
+
+            IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(28.dp)) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_dot_option),
+                    tint = MaterialTheme.colorScheme.inverseSurface,
                     contentDescription = "",
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier
+                        .padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp)
                 )
             }
 
@@ -170,8 +194,13 @@ fun LocationDropdownMenu(
     onAddImage: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    DropdownMenu(expanded = expanded, onDismissRequest = { onDismiss() }) {
-        Column {
+    DropdownMenu(
+        modifier = Modifier.background(color = MaterialTheme.colorScheme.inverseOnSurface),
+        expanded = expanded,
+        onDismissRequest = { onDismiss() }) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+        ) {
             LocationItemSetting(name = "Edit nama lokasi") {
                 onEditTitle()
             }
@@ -193,10 +222,15 @@ fun LocationItemSetting(
 ) {
 
     TextButton(
-        modifier = modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
         onClick = { onClick() }) {
         Text(
-            text = name, color = Color.Black
+            text = name,
+            color = MaterialTheme.colorScheme.inverseSurface,
+            textAlign = TextAlign.Start,
+            modifier = modifier.fillMaxWidth()
         )
     }
 }
@@ -213,36 +247,45 @@ fun DirectionAndShareButtonSection(
     ) {
         Button(shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                backgroundColor = Theme.Color.blueBackground, contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primary
             ),
             onClick = { onDirectionClick.invoke() }) {
             Icon(
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(20.dp)
                     .padding(end = 4.dp),
+                tint = MaterialTheme.colorScheme.onPrimary,
                 painter = painterResource(id = R.drawable.ic_direction),
                 contentDescription = "Button show route",
             )
-            Text(text = "Rute", fontSize = 12.sp)
+            Text(
+                text = "Rute",
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelSmall
+            )
         }
 
         Button(modifier = Modifier.padding(start = 16.dp),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFF008000),
-                backgroundColor = Color.White,
-
-                ),
-            border = BorderStroke(1.dp, Color(0xFF008000)),
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
             onClick = { onShareClick.invoke() }) {
             Icon(
                 modifier = Modifier
                     .size(18.dp)
                     .padding(end = 4.dp),
                 imageVector = Icons.Rounded.Share,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
                 contentDescription = "Button share route",
             )
-            Text(text = "Bagikan", fontSize = 12.sp)
+            Text(
+                text = "Bagikan",
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold
+            )
         }
 
     }
@@ -251,7 +294,7 @@ fun DirectionAndShareButtonSection(
 
 @Composable
 fun LocationImages(
-    locationImages: List<String>,
+    locationImages: List<Uri>,
 
     ) {
 
@@ -270,91 +313,106 @@ fun LocationImages(
 
 @Composable
 fun ImageLocation(
-    uri: String,
+    uri: Uri,
 ) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier
+            .size(150.dp)
+            .wrapContentHeight()
+            .padding(end = 8.dp)
+            .background(color = Color.White, shape = RoundedCornerShape(16.dp)),
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp)
+    ) {
 
-    val content = LocalContext.current
-    val imageBitmap by remember {
-        mutableStateOf(Uri.parse(uri).getBitmap(content))
-    }
-
-    imageBitmap?.let {
-
-
-        Card(
-            modifier = Modifier
-                .size(150.dp)
-                .wrapContentHeight()
-                .padding(end = 8.dp)
-                .background(color = Color.White, shape = RoundedCornerShape(16.dp)),
-            elevation = 0.dp
-        ) {
-
-            Box(
-
-
-            ) {
-                AsyncImage(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(160 / 120f)
-                        .background(
-                            color = Color.Transparent, shape = RoundedCornerShape(16.dp)
-                        ),
-                    model = imageBitmap,
-                    contentScale = ContentScale.Crop,
-                    contentDescription = null
-                )
-            }
-
-
+        Box {
+            AsyncImage(
+                modifier = Modifier
+                    .clickable {
+                        openImageViewer(context, uri)
+                    }
+                    .fillMaxWidth()
+                    .aspectRatio(160 / 120f)
+                    .background(
+                        color = Color.Transparent, shape = RoundedCornerShape(16.dp)
+                    ),
+                model = uri,
+                contentScale = ContentScale.Crop,
+                contentDescription = null
+            )
         }
+
 
     }
 }
+
 
 @Composable
 fun LocationNote(
     modifier: Modifier = Modifier, note: String?, onEditNoteClicked: () -> Unit
 ) {
-
-    Row(
-        modifier = modifier
-            .padding(top = 4.dp, bottom = 8.dp)
-            .fillMaxWidth()
-            .background(color = Color(0xFFF1ECEC), shape = RoundedCornerShape(16.dp)),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+        )
     ) {
 
-        Text(
-            text = note ?: "Tambah catatan...",
-            color = Color(0XFF242424),
-            fontSize = 12.sp,
-            modifier = Modifier
-                .weight(1f)
-                .padding(vertical = 8.dp, horizontal = 16.dp)
-        )
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .clickable {
+                    onEditNoteClicked()
+                }
+                .padding(top = 8.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
 
-        IconButton(onClick = { onEditNoteClicked() }) {
+            Text(
+                text = note ?: "Tambah catatan...",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 8.dp, horizontal = 16.dp)
+            )
+
             Icon(
                 imageVector = Icons.Rounded.Edit,
-                tint = Color.Black,
+                tint = MaterialTheme.colorScheme.onSurface,
                 contentDescription = "",
                 modifier = modifier
-                    .padding(top = 4.dp, bottom = 8.dp, end = 16.dp)
+                    .padding(top = 8.dp, bottom = 8.dp, end = 16.dp)
                     .size(16.dp)
             )
-        }
 
+        }
     }
 
+}
+
+
+fun openImageViewer(context: Context, uri: Uri) {
+    val intent = Intent().apply {
+        action = Intent.ACTION_VIEW
+        setDataAndType(uri, "image/*")
+        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+    }
+    context.startActivity(intent)
 }
 
 @Preview
 @Composable
 fun LocationDetailPreview() {
-    LocationItem(location = Location(0, "preview", "notes", null, null, listOf("", "")),
+    LocationItem(location = Location(
+        0,
+        "-232321099421",
+        "notes",
+        null,
+        null,
+        listOf("", "")
+    ),
         onDirectionClick = {},
         onShareClick = {},
         onDeleteLocation = {},

@@ -15,8 +15,8 @@ class UpdateLocationUseCase @Inject constructor(
 
     operator fun invoke(location: Location): Flow<ResultState<Boolean>>{
         return flow {
-            emit(ResultState.Loading())
-            delay(300)
+            emit(ResultState.Initial())
+//            delay(300)
             repository.updateLocation(location)
             emit(ResultState.Success(true))
         }.catch {

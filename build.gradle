@@ -13,7 +13,7 @@ buildscript {
         kotlin_version = "1.8.0"
         google_service_version = "4.3.15"
         firebase_crashlytics_gradle_version = "2.9.4"
-        hilt_version = "2.45"
+        hilt_version = "2.49"
         nav_version = "2.5.3"
 
         firebase_core_version = "21.1.1"
@@ -63,7 +63,7 @@ buildscript {
         core_ktx_version = "1.9.0"
         appcompat_version = "1.6.1"
         constraintlayout_version = "2.1.4"
-        room_version = "2.5.0"
+        room_version = "2.6.1"
     }
 
     repositories {

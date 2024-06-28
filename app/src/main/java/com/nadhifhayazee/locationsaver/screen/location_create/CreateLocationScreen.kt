@@ -1,11 +1,10 @@
 package com.nadhifhayazee.locationsaver.screen.location_create
 
 import android.annotation.SuppressLint
-import android.location.Location
-import android.util.Log
-import android.widget.Toast
+import android.app.Activity.RESULT_OK
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,52 +13,53 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.BottomSheetScaffold
-import androidx.compose.material.BottomSheetValue
-import androidx.compose.material.Button
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.rememberBottomSheetScaffoldState
-import androidx.compose.material.rememberBottomSheetState
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
-import com.nadhifhayazee.locationsaver.screen.location_create.component.LocationPermissionState
+import com.nadhifhayazee.domain.model.ResultState
+import com.nadhifhayazee.locationsaver.R
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun CreateLocationScreen(
@@ -68,265 +68,269 @@ fun CreateLocationScreen(
     createLocationViewModel: CreateLocationViewModel = hiltViewModel()
 
 ) {
-    val context = LocalContext.current
-
+    val coroutineScope = rememberCoroutineScope()
     val locationState by createLocationViewModel.locationState.collectAsState()
-
-    if (locationState == null) {
-        createLocationViewModel.checkLocationPermission(context)
+    val selectedLocationName by createLocationViewModel.locationAddress.collectAsState()
+    val isGPSActive by createLocationViewModel.isGPSActive.collectAsState()
+    var isLoading by remember { mutableStateOf(true) }
+    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
+    val defaultLatLng = LatLng(-6.200000, 106.816666)
+    val cameraPositionState = rememberCameraPositionState {
+        this.position =
+            CameraPosition.fromLatLngZoom(currentLocation ?: defaultLatLng, 12f)
     }
+    val markerState = rememberMarkerState()
 
-    when (locationState) {
-        is LocationState.Permission -> {
-            if ((locationState as LocationState.Permission).isGranted == true) {
-                createLocationViewModel.checkGPSState(context)
-            } else {
+    val locationRequestLauncher =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                createLocationViewModel.getCurrentLocation()
+            }
 
-                LocationPermissionState(onPermissionAllowed = {
-                    createLocationViewModel.checkGPSState(context)
-                }) {
-                    Toast.makeText(
-                        context, "Location Permission must be allowed!", Toast.LENGTH_SHORT
-                    ).show()
+        }
+
+    LaunchedEffect(true) {
+        createLocationViewModel.addResult.collectLatest { result ->
+            when (result) {
+                is ResultState.Success -> {
+                    if (result.data) {
+                        navController?.popBackStack()
+                    }
                 }
 
+                else -> Unit
             }
         }
+    }
 
-        is LocationState.GPSState -> {
-            if ((locationState as LocationState.GPSState).isActive == true) {
-                createLocationViewModel.getCurrentLocation(context)
-            } else {
-                AlertDialog(
-                    onDismissRequest = { createLocationViewModel.checkGPSState(context) },
-                    buttons = {
+    LaunchedEffect(isGPSActive) {
+        if (isGPSActive) {
+            if (locationState == null) createLocationViewModel.getCurrentLocation()
+        } else {
+            createLocationViewModel.requestEnableGPS()
+        }
+    }
 
-                        Row(
-                            horizontalArrangement = Arrangement.End,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                        ) {
-                            Button(onClick = {
-                                createLocationViewModel.checkGPSState(context)
-                            }) {
-                                Text(text = "Oke")
-                            }
-                        }
-                    },
-                    title = {
-                        Text(text = "Activate your GPS please!")
-                    },
-                    text = {
-                        Text(text = "This app need to activate GPS")
-                    },
-                    modifier = Modifier
-                        .wrapContentWidth()
-                        .wrapContentHeight()
-                )
+    LaunchedEffect(cameraPositionState.position.target) {
+        markerState.position = cameraPositionState.position.target
+    }
+
+    LaunchedEffect(currentLocation) {
+        if (currentLocation != null) {
+            isLoading = false
+            animateCameraToCurrentLocation(
+                cameraPositionState,
+                currentLocation!!
+            )
+        }
+    }
+
+    LaunchedEffect(locationState) {
+        when (locationState) {
+            is LocationState.GPSNotActive -> {
+                locationRequestLauncher.launch((locationState as LocationState.GPSNotActive).intentSenderRequest)
+            }
+
+            is LocationState.CurrentLocation -> {
+                val newLat = (locationState as LocationState.CurrentLocation).location?.latitude
+                val newLng = (locationState as LocationState.CurrentLocation).location?.longitude
+                if (currentLocation?.latitude != newLat || currentLocation?.longitude != newLng) {
+                    currentLocation = LatLng(
+                        newLat ?: 0.0,
+                        newLng ?: 0.0
+                    )
+                }
+            }
+
+            else -> {}
+        }
+    }
+
+    Scaffold(
+
+        topBar = {
+            TopBar(
+                isEnabled = !isLoading,
+                locationName = selectedLocationName,
+                onAddLocationClicked = {
+                    val selectedLatLng = cameraPositionState.position.target
+                    createLocationViewModel.addLocation(
+                        name = selectedLocationName,
+                        latitude = selectedLatLng.latitude,
+                        longitude = selectedLatLng.longitude,
+                        detail = null
+                    )
+                }) {
+                navController?.popBackStack()
             }
         }
-
-        is LocationState.CurrentLocation -> {
-
-            CreateLocationContent(
-                location = (locationState as LocationState.CurrentLocation).location,
-                onAddLocationClicked = { name, detail, lat, lng ->
-                    createLocationViewModel.addLocation(name, detail, lat, lng)
-                    navController?.popBackStack()
-                })
-        }
-
-        else -> {}
-    }
-
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun CreateLocationContent(
-    modifier: Modifier = Modifier,
-    location: Location?,
-    onAddLocationClicked: (String, String?, Double, Double) -> Unit
-) {
-    val marker = rememberMarkerState()
-    val latLng = LatLng(location?.latitude ?: 0.0, location?.longitude ?: 0.0)
-    marker.position = latLng
-
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(latLng, 16f)
-    }
-
-    Scaffold { paddingValue ->
-
-
+    ) { paddingValues ->
         Box(
-            modifier = modifier
+            modifier
+                .padding(paddingValues)
                 .fillMaxSize()
-                .padding(paddingValue)
+                .background(MaterialTheme.colorScheme.primary)
         ) {
-
-
             GoogleMap(
                 modifier = modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
-                uiSettings = MapUiSettings(myLocationButtonEnabled = true)
-
+                uiSettings = MapUiSettings(
+                    myLocationButtonEnabled = false,
+                    zoomControlsEnabled = false
+                ),
             ) {
 
-                Marker(
-                    state = MarkerState(position = latLng),
-                    icon = BitmapDescriptorFactory.defaultMarker()
-                )
-
-                MapEffect(latLng) {
-
+                if (currentLocation != null) {
+                    Marker(
+                        state = markerState
+                    )
                 }
 
-            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .background(color = Color.White),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp, horizontal = 16.dp)
-                        .align(Alignment.TopCenter)
-                        .background(color = Color.White),
-                    horizontalArrangement = Arrangement.Absolute.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-
-                    Row(
-                        horizontalArrangement = Arrangement.Start,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-
-                            onClick = {
-
-                            }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "",
-                                tint = Color.Black,
-                            )
-                        }
-
-                        Text(
-                            text = "Pilih lokasi",
-                            color = Color.Black,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    }
-
-
-                    TextButton(
-                        onClick = {
-                            onAddLocationClicked(
-                                "${latLng.latitude}, ${latLng.longitude}",
-                                null,
+                MapEffect { map ->
+                    map.setOnCameraIdleListener {
+                        if (currentLocation != null) {
+                            val latLng = cameraPositionState.position.target
+                            createLocationViewModel.updateLocationName(
                                 latLng.latitude,
                                 latLng.longitude
                             )
                         }
-                    ) {
-                        Text(
-                            text = "Oke",
-                            color = Color.Black,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
                     }
-
-
                 }
-
 
             }
 
-//            BottomSheetScaffold(
-//                sheetContent = {
-//                    AddLocationSection(
-//                        modifier = modifier
-//                            .fillMaxWidth()
-//                            .padding(16.dp)
-//                            .background(shape = RoundedCornerShape(12.dp), color = Color.White),
-//                        onAddLocationClicked = { name, detail ->
-//                            onAddLocationClicked(name, detail, latLng.latitude, latLng.longitude)
-//                        }
-//                    )
-//                }, sheetShape = RoundedCornerShape(16.dp),
-//                scaffoldState = bottomSheetScaffoldState
-//            ) {
-//
-//            }
-
+            CurrentLocationButton(
+                modifier = modifier
+                    .padding(16.dp)
+                    .align(
+                        Alignment.BottomEnd
+                    )
+            ) {
+                coroutineScope.launch {
+                    if (currentLocation != null) {
+                        animateCameraToCurrentLocation(
+                            cameraPositionState,
+                            currentLocation!!
+                        )
+                    } else {
+                        createLocationViewModel.requestEnableGPS()
+                    }
+                }
+            }
         }
     }
-
 
 }
 
 @Composable
-fun AddLocationSection(
-    modifier: Modifier, onAddLocationClicked: (String, String) -> Unit
+fun TopBar(
+    modifier: Modifier = Modifier,
+    isEnabled: Boolean,
+    locationName: String,
+    onAddLocationClicked: () -> Unit,
+    onBackClicked: () -> Unit
 ) {
-
-    var locationName = remember {
-        mutableStateOf("")
-    }
-    var locationDetail = remember {
-        mutableStateOf("")
-    }
-    Column(
+    Row(
         modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp, horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
 
-
-        OutlinedTextField(modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 16.dp),
-            value = locationName.value,
-            label = { Text(text = "Nama Lokasi") },
-            onValueChange = {
-                locationName.value = it
-            })
-
-        OutlinedTextField(modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-            value = locationDetail.value,
-            label = { Text(text = "Detail Lokasi") },
-            onValueChange = {
-                locationDetail.value = it
-            })
-
-
-
-        TextButton(modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+        IconButton(
             onClick = {
-                onAddLocationClicked(
-                    locationName.value, locationDetail.value
-                )
+                onBackClicked()
+
             }) {
-            Text(text = "Tambah")
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "",
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
         }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Pilih lokasi",
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+
+            Text(
+                text = locationName, color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 12.sp,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            )
+
+        }
+
+
+
+        TextButton(
+            enabled = isEnabled,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            onClick = {
+                onAddLocationClicked()
+            },
+            modifier = Modifier.padding(horizontal = 8.dp),
+        ) {
+            Text(
+
+                text = "Oke",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = modifier.padding(horizontal = 8.dp)
+            )
+        }
+
+
     }
 }
 
 
-@Preview
 @Composable
-fun CreateLocationScreenPreview() {
-
-    CreateLocationContent(location = null, onAddLocationClicked = {_,_,_,_ -> })
+fun CurrentLocationButton(modifier: Modifier = Modifier, onClicked: () -> Unit) {
+    IconButton(
+        modifier = modifier,
+        onClick = { onClicked() },
+        colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Icon(
+            modifier = Modifier.size(21.dp),
+            imageVector = ImageVector.vectorResource(id = R.drawable.ic_current_location),
+            tint = MaterialTheme.colorScheme.primary,
+            contentDescription = "Current location button"
+        )
+    }
 }
+
+
+suspend fun animateCameraToCurrentLocation(
+    cameraPositionState: CameraPositionState,
+    currentLocationLatLng: LatLng
+) {
+    cameraPositionState.animate(
+        update = CameraUpdateFactory.newCameraPosition(
+            CameraPosition.fromLatLngZoom(currentLocationLatLng, 18f)
+        ), durationMs = 700
+    )
+}
+
