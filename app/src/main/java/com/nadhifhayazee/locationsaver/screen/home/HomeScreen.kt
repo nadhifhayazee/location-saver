@@ -157,23 +157,39 @@ fun HomeScreen(
         HomeScreenContent(
             modifier = modifier,
             locationsState = locationsState,
-            navController,
             paddingValues,
-            onDeleteLocation = {
-                homeViewModel.onEvent(LocationEvent.DeleteLocation(it.id.toString()))
+            loadingView = {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             },
-            onAddImage = { location ->
-                selectedLocation = location
-                val permissionCheckResult =
-                    ContextCompat.checkSelfPermission(context, android.Manifest.permission.CAMERA)
-                if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
-                    uri = ImageUriGenerator.createImageUri(context)
-                    cameraLauncher.launch(uri!!)
-                } else {
-                    cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-                }
-            }
-        )
+            noDataView = {
+                DataNotExist()
+            },
+            listView = {
+                LocationList(
+                    locations = locationsState.locations,
+                    navHostController = navController,
+                    onDeleteLocation = { location ->
+                        homeViewModel.onEvent(LocationEvent.DeleteLocation(location.id.toString()))
+
+                    },
+                    onAddImage = { location ->
+                        selectedLocation = location
+                        val permissionCheckResult =
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.CAMERA
+                            )
+                        if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                            uri = ImageUriGenerator.createImageUri(context)
+                            cameraLauncher.launch(uri!!)
+                        } else {
+                            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        }
+                    }
+                )
+            },
+
+            )
     }
 
 
@@ -234,13 +250,12 @@ fun AddLocationFloatingButton(
 fun HomeScreenContent(
     modifier: Modifier = Modifier,
     locationsState: LocationState,
-    navController: NavHostController?,
     paddingValues: PaddingValues = PaddingValues(),
-    onDeleteLocation: (Location) -> Unit,
-    onAddImage: (Location) -> Unit
+    noDataView: @Composable (() -> Unit),
+    listView: @Composable (() -> Unit),
+    loadingView: @Composable (() -> Unit)
 ) {
 
-//    val progressAnimate by animateFloatAsState(targetValue = )
     Log.d("HomeScreenContent", "HomeScreenContent: $locationsState")
     Column(
         modifier = modifier
@@ -254,38 +269,20 @@ fun HomeScreenContent(
     ) {
 
 
-//        if (!locationsState.loading && locationsState.locations?.isEmpty() == true) {
-//            DataNotExist()
-//        } else if (!locationsState.loading && locationsState.locations?.isNotEmpty() == true) {
-//
-//        }
-
         AnimatedVisibility(visible = !locationsState.loading && locationsState.locations?.isEmpty() == true) {
-            DataNotExist()
+            noDataView()
         }
 
         AnimatedVisibility(visible = !locationsState.loading && locationsState.locations?.isNotEmpty() == true) {
-            LocationList(
-                locations = locationsState.locations,
-                navHostController = navController,
-                onDeleteLocation = { location ->
-                    onDeleteLocation(location)
-                },
-                onAddImage = { location ->
-                    onAddImage(location)
-                }
-            )
+            listView()
         }
         AnimatedVisibility(
 
             visible = locationsState.loading,
             exit = shrinkOut()
         ) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            loadingView()
         }
-
-
-
 
         locationsState.errorMessage?.let { message ->
             Toast.makeText(LocalContext.current, message, Toast.LENGTH_SHORT)
@@ -351,14 +348,15 @@ fun LocationList(
                 it.id
             }) { location ->
 
-                LocationItem(modifier = Modifier
-                    .padding(vertical = 8.dp)
-                    .animateItemPlacement(
-                        animationSpec = tween(
-                            durationMillis = 500,
-                            easing = LinearOutSlowInEasing,
-                        )
-                    ),
+                LocationItem(
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .animateItem(
+                            fadeInSpec = tween(
+                                durationMillis = 500,
+                                easing = LinearOutSlowInEasing,
+                            )
+                        ),
                     location = location,
                     onDirectionClick = {
                         ImplicitIntent.toMapsDirection(
@@ -396,8 +394,10 @@ fun LocationList(
 fun HomeScreenPreview() {
     HomeScreenContent(
         locationsState = LocationState(),
-        navController = null,
-        onDeleteLocation = {},
-        onAddImage = {}
+        noDataView = {
+            DataNotExist()
+        },
+        listView = {},
+        loadingView = {}
     )
 }

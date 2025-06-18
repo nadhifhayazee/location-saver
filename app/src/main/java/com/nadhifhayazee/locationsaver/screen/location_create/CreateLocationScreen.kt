@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -28,10 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,16 +47,17 @@ import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
-import com.google.maps.android.compose.rememberMarkerState
+import com.google.maps.android.compose.rememberUpdatedMarkerState
 import com.nadhifhayazee.domain.model.ResultState
 import com.nadhifhayazee.locationsaver.R
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(MapsComposeExperimentalApi::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun CreateLocationScreen(
@@ -69,17 +67,15 @@ fun CreateLocationScreen(
 
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val locationState by createLocationViewModel.locationState.collectAsState()
-    val selectedLocationName by createLocationViewModel.locationAddress.collectAsState()
-    val isGPSActive by createLocationViewModel.isGPSActive.collectAsState()
-    var isLoading by remember { mutableStateOf(true) }
-    var currentLocation by remember { mutableStateOf<LatLng?>(null) }
     val defaultLatLng = LatLng(-6.200000, 106.816666)
+    val uiState by createLocationViewModel.uiState.collectAsState()
     val cameraPositionState = rememberCameraPositionState {
         this.position =
-            CameraPosition.fromLatLngZoom(currentLocation ?: defaultLatLng, 12f)
+            CameraPosition.fromLatLngZoom(uiState.currentLocation ?: defaultLatLng, 12f)
     }
-    val markerState = rememberMarkerState()
+    val markerState = rememberUpdatedMarkerState(
+        position = cameraPositionState.position.target
+    )
 
     val locationRequestLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -89,7 +85,19 @@ fun CreateLocationScreen(
 
         }
 
+
+
+
+
     LaunchedEffect(true) {
+        if (createLocationViewModel.checkIsGPSActive()) {
+            createLocationViewModel.getCurrentLocation()
+        } else {
+            createLocationViewModel.requestEnableGPS {
+                locationRequestLauncher.launch(it)
+            }
+        }
+
         createLocationViewModel.addResult.collectLatest { result ->
             when (result) {
                 is ResultState.Success -> {
@@ -103,59 +111,27 @@ fun CreateLocationScreen(
         }
     }
 
-    LaunchedEffect(isGPSActive) {
-        if (isGPSActive) {
-            if (locationState == null) createLocationViewModel.getCurrentLocation()
-        } else {
-            createLocationViewModel.requestEnableGPS()
-        }
-    }
 
-    LaunchedEffect(cameraPositionState.position.target) {
-        markerState.position = cameraPositionState.position.target
-    }
-
-    LaunchedEffect(currentLocation) {
-        if (currentLocation != null) {
-            isLoading = false
+    LaunchedEffect(uiState.currentLocation) {
+        if (uiState.currentLocation != null) {
             animateCameraToCurrentLocation(
                 cameraPositionState,
-                currentLocation!!
+                uiState.currentLocation!!
             )
         }
     }
 
-    LaunchedEffect(locationState) {
-        when (locationState) {
-            is LocationState.GPSNotActive -> {
-                locationRequestLauncher.launch((locationState as LocationState.GPSNotActive).intentSenderRequest)
-            }
-
-            is LocationState.CurrentLocation -> {
-                val newLat = (locationState as LocationState.CurrentLocation).location?.latitude
-                val newLng = (locationState as LocationState.CurrentLocation).location?.longitude
-                if (currentLocation?.latitude != newLat || currentLocation?.longitude != newLng) {
-                    currentLocation = LatLng(
-                        newLat ?: 0.0,
-                        newLng ?: 0.0
-                    )
-                }
-            }
-
-            else -> {}
-        }
-    }
 
     Scaffold(
 
         topBar = {
             TopBar(
-                isEnabled = !isLoading,
-                locationName = selectedLocationName,
+                isLoading = uiState.isLoading,
+                locationName = uiState.selectedLocationAddress ?: "",
                 onAddLocationClicked = {
                     val selectedLatLng = cameraPositionState.position.target
                     createLocationViewModel.addLocation(
-                        name = selectedLocationName,
+                        name = uiState.selectedLocationAddress ?: "",
                         latitude = selectedLatLng.latitude,
                         longitude = selectedLatLng.longitude,
                         detail = null
@@ -180,7 +156,7 @@ fun CreateLocationScreen(
                 ),
             ) {
 
-                if (currentLocation != null) {
+                if (uiState.currentLocation != null) {
                     Marker(
                         state = markerState
                     )
@@ -189,7 +165,7 @@ fun CreateLocationScreen(
 
                 MapEffect { map ->
                     map.setOnCameraIdleListener {
-                        if (currentLocation != null) {
+                        if (uiState.currentLocation != null) {
                             val latLng = cameraPositionState.position.target
                             createLocationViewModel.updateLocationName(
                                 latLng.latitude,
@@ -209,13 +185,11 @@ fun CreateLocationScreen(
                     )
             ) {
                 coroutineScope.launch {
-                    if (currentLocation != null) {
+                    if (uiState.currentLocation != null) {
                         animateCameraToCurrentLocation(
                             cameraPositionState,
-                            currentLocation!!
+                            uiState.currentLocation!!
                         )
-                    } else {
-                        createLocationViewModel.requestEnableGPS()
                     }
                 }
             }
@@ -227,7 +201,7 @@ fun CreateLocationScreen(
 @Composable
 fun TopBar(
     modifier: Modifier = Modifier,
-    isEnabled: Boolean,
+    isLoading: Boolean,
     locationName: String,
     onAddLocationClicked: () -> Unit,
     onBackClicked: () -> Unit
@@ -266,22 +240,32 @@ fun TopBar(
                     .padding(horizontal = 16.dp)
             )
 
-            Text(
-                text = locationName, color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 12.sp,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 1,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .size(20.dp)
+                )
+            } else {
+                Text(
+                    text = locationName, color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 12.sp,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+            }
+
 
         }
 
 
 
         TextButton(
-            enabled = isEnabled,
+            enabled = !isLoading,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary

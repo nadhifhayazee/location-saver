@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
-import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Looper
@@ -22,6 +21,7 @@ import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.LocationSettingsResponse
 import com.google.android.gms.location.Priority
 import com.google.android.gms.location.SettingsClient
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.Task
 import com.nadhifhayazee.domain.model.ResultState
 import com.nadhifhayazee.domain.useCase.location.AddLocationUseCase
@@ -29,9 +29,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.Locale
@@ -43,33 +45,23 @@ class CreateLocationViewModel @Inject constructor(
     private val addLocationUseCase: AddLocationUseCase
 ) : ViewModel() {
 
-    private val _locationState = MutableStateFlow<LocationState?>(null)
-    val locationState get() = _locationState.asStateFlow()
-
-    private val _locationAddress = MutableStateFlow("-")
-    val locationAddress get() = _locationAddress.asStateFlow()
-
-    private val _isGPSActive = MutableStateFlow(false)
-    val isGPSActive get() = _isGPSActive.asStateFlow()
 
     private val _addResult = MutableSharedFlow<ResultState<Boolean>>()
     val addResult get() = _addResult.asSharedFlow()
 
-    private var locationRequest: LocationRequest
-    private var locationSettingsBuilder: LocationSettingsRequest.Builder
-    private var locationSettingClient: SettingsClient
+    private val _uiState = MutableStateFlow<CreateLocationUiState>(CreateLocationUiState())
+    val uiState: StateFlow<CreateLocationUiState> = _uiState.asStateFlow()
 
-    init {
-        _isGPSActive.value = checkIsGPSActive()
-        locationRequest = LocationRequest.Builder(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            20000
-        ).build()
-        locationSettingsBuilder = LocationSettingsRequest.Builder().addLocationRequest(
+    private var locationRequest: LocationRequest = LocationRequest.Builder(
+        Priority.PRIORITY_HIGH_ACCURACY,
+        20000
+    ).build()
+    private var locationSettingsBuilder: LocationSettingsRequest.Builder =
+        LocationSettingsRequest.Builder().addLocationRequest(
             locationRequest
         )
-        locationSettingClient = LocationServices.getSettingsClient(context)
-    }
+    private var locationSettingClient: SettingsClient = LocationServices.getSettingsClient(context)
+
 
     fun updateLocationName(latitude: Double, longitude: Double) {
         val geocoder = Geocoder(context, Locale.getDefault())
@@ -78,14 +70,24 @@ class CreateLocationViewModel @Inject constructor(
                 latitude, longitude, 1
             ) {
                 if (it.isNotEmpty()) {
-                    _locationAddress.value = it[0].getAddressLine(0)
+                    _uiState.update { state ->
+                        state.copy(
+                            selectedLocationAddress = it[0].getAddressLine(0)
+
+                        )
+                    }
                 }
             }
         } else {
             try {
                 val list = geocoder.getFromLocation(latitude, longitude, 1)
                 if (list?.isNotEmpty() == true) {
-                    _locationAddress.value = list[0].getAddressLine(0)
+                    _uiState.update { state ->
+                        state.copy(
+                            selectedLocationAddress = list[0].getAddressLine(0)
+
+                        )
+                    }
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -93,13 +95,13 @@ class CreateLocationViewModel @Inject constructor(
         }
     }
 
-    private fun checkIsGPSActive(): Boolean {
+    fun checkIsGPSActive(): Boolean {
         val locationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
     }
 
-    fun requestEnableGPS() {
+    fun requestEnableGPS(onEnableGPSRequestReject: (IntentSenderRequest) -> Unit) {
         val task: Task<LocationSettingsResponse> =
             locationSettingClient.checkLocationSettings(locationSettingsBuilder.build())
         task.addOnFailureListener { exception ->
@@ -107,7 +109,7 @@ class CreateLocationViewModel @Inject constructor(
                 try {
                     val intentSenderRequest =
                         IntentSenderRequest.Builder(exception.resolution).build()
-                    _locationState.value = LocationState.GPSNotActive(intentSenderRequest)
+                    onEnableGPSRequestReject(intentSenderRequest)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -118,11 +120,6 @@ class CreateLocationViewModel @Inject constructor(
 
     fun getCurrentLocation() {
         viewModelScope.launch {
-
-            if (!checkIsGPSActive()) {
-                requestEnableGPS()
-                return@launch
-            }
             try {
                 val fusedLocation =
                     LocationServices.getFusedLocationProviderClient(context)
@@ -131,7 +128,17 @@ class CreateLocationViewModel @Inject constructor(
                     override fun onLocationResult(result: LocationResult) {
                         result.lastLocation.let {
                             fusedLocation.removeLocationUpdates(this)
-                            _locationState.value = LocationState.CurrentLocation(it)
+                            it?.let { location ->
+                                _uiState.update { state ->
+                                    state.copy(
+                                        isLoading = false,
+                                        currentLocation = LatLng(
+                                            location.latitude,
+                                            location.longitude
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -181,7 +188,8 @@ class CreateLocationViewModel @Inject constructor(
 
 }
 
-sealed class LocationState() {
-    data class GPSNotActive(val intentSenderRequest: IntentSenderRequest) : LocationState()
-    data class CurrentLocation(val location: Location?) : LocationState()
-}
+data class CreateLocationUiState(
+    val isLoading: Boolean = true,
+    val currentLocation: LatLng? = null,
+    val selectedLocationAddress: String? = null
+)
